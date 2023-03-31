@@ -1,9 +1,19 @@
 package com.example.dropdownmenuapp
 
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Card
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +43,9 @@ fun PersonItem(
         mutableStateOf(0.dp)
     }
     val density = LocalDensity.current
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
 
     Card(
         elevation = 4.dp,
@@ -40,14 +53,45 @@ fun PersonItem(
             itemHeight = with(density) { it.height.toDp() }
         }
     ) {
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .pointerInput(true) {
-
-            }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .indication(interactionSource, LocalIndication.current)
+                .pointerInput(true) {
+                    detectTapGestures(
+                        onLongPress = {
+                            isContextMenuVisible = true
+                            pressOffset = DpOffset(it.x.toDp(), it.y.toDp())
+                        },
+                        onPress = {
+                            val press = PressInteraction.Press(it)
+                            interactionSource.emit(press)
+                            tryAwaitRelease()
+                            interactionSource.emit(PressInteraction.Release(press))
+                        }
+                    )
+                }
+                .padding(16.dp)
         ) {
-
+            Text(text = personName)
+        }
+        DropdownMenu(
+            expanded = isContextMenuVisible,
+            onDismissRequest = { isContextMenuVisible = false },
+            offset = pressOffset.copy(
+                y = pressOffset.y - itemHeight
+            )
+        ) {
+            dropDownItems.forEach { item ->
+                DropdownMenuItem(
+                    onClick = {
+                        onItemClick(item)
+                        isContextMenuVisible = false
+                    }
+                ) {
+                    Text(text = item.text)
+                }
+            }
         }
     }
-
 }
